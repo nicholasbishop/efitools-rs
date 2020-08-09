@@ -10,8 +10,8 @@ use x509_parser::pem;
 /// containing just that certificate.
 #[derive(Debug, argh::FromArgs)]
 struct Opt {
-    /// use <guid> as the owner of the signature (if not supplied, an
-    /// all-zero guid will be used)
+    /// use <guid> as the owner of the signature (defaults to an
+    /// all-zero guid)
     #[argh(switch, short = 'g')]
     guid: bool,
 
