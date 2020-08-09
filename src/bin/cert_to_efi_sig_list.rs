@@ -2,9 +2,9 @@ use anyhow::Error;
 use efitools::uefi;
 use fehler::throws;
 use std::fs::{self, File};
-use std::io::{Cursor, Write};
+use std::io::Write;
 use std::path::PathBuf;
-use x509_parser::pem::Pem;
+use x509_parser::pem;
 
 /// Convert an x509 certificate in PEM format to an EFI signature list
 /// containing just that certificate.
@@ -26,25 +26,23 @@ struct Opt {
 fn main() {
     let opt: Opt = argh::from_env();
 
-    let cert = fs::read(&opt.cert)?;
-
-    let reader = Cursor::new(cert);
+    let pem = fs::read(&opt.cert)?;
     // TODO: have a PR up to make the x509-parser library errors
     // implement Error.
-    let (pem, _) = Pem::read(reader).expect("failed to read PEM");
-    let x509 = pem.parse_x509().expect("X.509: decoding DER failed");
+    let der_encoded_cert =
+        pem::pem_to_der(&pem).expect("failed to convert PEM to DER");
 
-    let sig_list = uefi::SignatureList {
-        signature_type: uefi::CERT_X509_GUID,
-        signatures: vec![uefi::SignatureData {
-            // TODO
-            signature_owner: uefi::Guid::from_parts(0, 0, 0, 0, 0, [0; 6]),
-            signature_data: uefi::Signature::X509(vec![]),
-        }],
-    };
+    let mut sig_list = uefi::SignatureList::new();
+    sig_list.add(
+        uefi::SignatureX509 {
+            der_encoded_cert: der_encoded_cert.1.contents,
+        },
+        // TODO
+        uefi::Guid::zero(),
+    );
 
     let mut file = File::create(&opt.sig_list)?;
     let mut bytes = Vec::new();
-    sig_list.serialize(&mut bytes);
+    sig_list.serialize(&mut bytes)?;
     file.write_all(&bytes)?;
 }
