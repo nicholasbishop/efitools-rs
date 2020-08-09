@@ -1,4 +1,5 @@
 use fehler::{throw, throws};
+use std::str::FromStr;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -70,6 +71,92 @@ impl Guid {
 
     pub const fn serialized_size() -> usize {
         16
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum GuidParseError {
+    #[error("incorrect length: {0} != 36")]
+    IncorrectLength(usize),
+    #[error("missing dash at index {0}")]
+    MissingDash(usize),
+    #[error("invalid hex char at index {0}")]
+    InvalidHex(usize),
+}
+
+impl FromStr for Guid {
+    type Err = GuidParseError;
+
+    #[throws(Self::Err)]
+    fn from_str(s: &str) -> Self {
+        let bytes = s.as_bytes();
+        if bytes.len() != 36 {
+            throw!(GuidParseError::IncorrectLength(s.len()));
+        }
+        let dash_indices = [8, 13, 18, 23];
+        for (index, ch) in bytes.iter().enumerate() {
+            if dash_indices.contains(&index) {
+                if *ch != b'-' {
+                    throw!(GuidParseError::MissingDash(index));
+                }
+            } else {
+                if !ch.is_ascii_hexdigit() {
+                    throw!(GuidParseError::InvalidHex(index));
+                }
+            }
+        }
+        fn to_digit(b: u8) -> u8 {
+            match b {
+                b'0' => 0,
+                b'1' => 1,
+                b'2' => 2,
+                b'3' => 3,
+                b'4' => 4,
+                b'5' => 5,
+                b'6' => 6,
+                b'7' => 7,
+                b'8' => 8,
+                b'9' => 9,
+                b'a' | b'A' => 0xa,
+                b'b' | b'B' => 0xb,
+                b'c' | b'C' => 0xc,
+                b'd' | b'D' => 0xd,
+                b'e' | b'E' => 0xe,
+                b'f' | b'F' => 0xf,
+                _ => panic!("invalid char"),
+            }
+        }
+        // OK to unwrap here because we already checked that all the
+        // characters
+        let to_u8 = |index: usize| -> u8 {
+            to_digit(bytes[index]) * 16 + to_digit(bytes[index + 1])
+        };
+        let aa = to_u8(0);
+        let bb = to_u8(2);
+        let cc = to_u8(4);
+        let dd = to_u8(6);
+        let ee = to_u8(9);
+        let ff = to_u8(11);
+        let gg = to_u8(14);
+        let hh = to_u8(16);
+        let ii = to_u8(19);
+        let jj = to_u8(21);
+        let kk = to_u8(24);
+        let ll = to_u8(26);
+        let mm = to_u8(28);
+        let nn = to_u8(30);
+        let oo = to_u8(32);
+        let pp = to_u8(34);
+        // TODO: need to test this, if I can find some examples, to
+        // make sure the ordering is correct
+        Guid {
+            time_low: u32::from_le_bytes([aa, bb, cc, dd]),
+            time_mid: u16::from_le_bytes([ee, ff]),
+            time_high_and_version: u16::from_le_bytes([gg, hh]),
+            clock_seq_high_and_reserved: ii,
+            clock_seq_low: jj,
+            node: [kk, ll, mm, nn, oo, pp],
+        }
     }
 }
 

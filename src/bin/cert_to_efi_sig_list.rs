@@ -12,8 +12,8 @@ use x509_parser::pem;
 struct Opt {
     /// use <guid> as the owner of the signature (defaults to an
     /// all-zero guid)
-    #[argh(switch, short = 'g')]
-    guid: bool,
+    #[argh(option, default = "uefi::Guid::zero()")]
+    owner: uefi::Guid,
 
     #[argh(positional)]
     cert: PathBuf,
@@ -37,8 +37,7 @@ fn main() {
         uefi::SignatureX509 {
             der_encoded_cert: der_encoded_cert.1.contents,
         },
-        // TODO
-        uefi::Guid::zero(),
+        opt.owner,
     );
 
     let mut file = File::create(&opt.sig_list)?;
