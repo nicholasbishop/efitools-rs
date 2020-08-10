@@ -1,4 +1,5 @@
 use anyhow::Error;
+use efitools::guid::Guid;
 use efitools::uefi;
 use fehler::throws;
 use std::fs::{self, File};
@@ -12,8 +13,8 @@ use x509_parser::pem;
 struct Opt {
     /// use <guid> as the owner of the signature (defaults to an
     /// all-zero guid)
-    #[argh(option, default = "uefi::Guid::zero()")]
-    owner: uefi::Guid,
+    #[argh(option, default = "Guid::nil()")]
+    owner: Guid,
 
     #[argh(positional)]
     cert: PathBuf,
