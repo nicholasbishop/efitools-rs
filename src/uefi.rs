@@ -1,6 +1,7 @@
 use crate::guid::Guid;
 use crate::serialize_u32;
 use fehler::{throw, throws};
+use x509_parser::pem;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -63,6 +64,23 @@ impl<T: Signature> SignatureData<T> {
 /// See "32.4.1 Signature Database"
 pub struct SignatureList<T: Signature> {
     signatures: Vec<SignatureData<T>>,
+}
+
+impl SignatureList<SignatureX509> {
+    pub fn from_x509_pem(
+        pem: &[u8],
+        owner: Guid,
+    ) -> Option<SignatureList<SignatureX509>> {
+        let der_encoded_cert = pem::pem_to_der(pem).ok()?;
+        Some(SignatureList {
+            signatures: vec![SignatureData {
+                data: SignatureX509 {
+                    der_encoded_cert: der_encoded_cert.1.contents,
+                },
+                owner,
+            }],
+        })
+    }
 }
 
 impl<T: Signature> SignatureList<T> {
