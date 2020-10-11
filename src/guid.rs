@@ -19,6 +19,10 @@ impl Guid {
         Guid(Uuid::nil())
     }
 
+    pub fn deserialize(input: &[u8]) -> Option<Guid> {
+        Some(Guid(Uuid::from_slice(input).ok()?))
+    }
+
     pub fn serialize(&self, buf: &mut Vec<u8>) {
         buf.reserve(Self::serialized_size());
         let (a, b, c, d) = self.0.to_fields_le();
@@ -40,5 +44,19 @@ impl FromStr for Guid {
     #[throws]
     fn from_str(s: &str) -> Self {
         Guid(Uuid::from_str(s)?)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ser_de_round_trip() {
+        let guid: Guid =
+            "00112233-4455-6677-8899-aabbccddeeff".parse().unwrap();
+        let mut bytes = Vec::new();
+        guid.serialize(&mut bytes);
+        assert_eq!(Guid::deserialize(&bytes).unwrap(), guid);
     }
 }
