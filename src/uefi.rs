@@ -21,6 +21,7 @@ pub trait Signature {
     fn serialized_size(&self) -> usize;
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SignatureX509 {
     pub der_encoded_cert: Vec<u8>,
 }
@@ -45,6 +46,7 @@ impl Signature for SignatureX509 {
 }
 
 /// See "32.4.1 Signature Database"
+#[derive(Clone, Debug, Eq, PartialEq)]
 struct SignatureData<T: Signature> {
     owner: Guid,
     data: T,
@@ -62,6 +64,7 @@ impl<T: Signature> SignatureData<T> {
 }
 
 /// See "32.4.1 Signature Database"
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SignatureList<T: Signature> {
     signatures: Vec<SignatureData<T>>,
 }
